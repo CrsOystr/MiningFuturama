@@ -29,12 +29,11 @@ request(baseURL + directoryURL, function (error, response, html) {
         console.log(episodeNumber);
       }
     });
-    doWork();
+    doWork(0);
   }
 });
 
-function doWork(){
-  for (var i=0; i < urlsToParse.length/70; i++){
+function doWork(i){
     request(baseURL + urlsToParse[i], function (error, response, html) {
       if (!error && response.statusCode == 200) {
         var $ = cheerio.load(html);
@@ -42,24 +41,38 @@ function doWork(){
           var a = $(this);
           var text = a.text().split('⨂').pop().split(':');
           var character = text[0].trim();
-          var characterLine = text[1].replace(/(\[.*?\])/g, '');
-          characterLine = characterLine.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?]/g,"").replace(/\s+/g, " ").trim();
-          console.log(character);
-          console.log(characterLine);
-          lines.push(new Line(character, characterLine, i));
+          var characterLine;
+          if(text[1]!=undefined){
+              characterLine = text[1].replace(/(\[.*?\])/g, '').trim();
+             //characterLine = characterLine.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?]/g,"").replace(/\s+/g, " ").trim();
+              console.log(character);
+              console.log(characterLine);
+              console.log(responsesReceived + 1);
+              lines.push(new Line(character, characterLine, responsesReceived + 1));
+          }
         });
         responsesReceived++;
-        if (responsesReceived == urlsToParse.length/70){
+        if (responsesReceived == urlsToParse.length-1){
             cleanUp();
+        }else{
+            doWork(responsesReceived);
         }
       }
     });
-  }
 }
 
 function cleanUp(){
-    console.log('meow');
+    var data = "Season, Episode, Character, Line\n"
+
     for (var i=0; i < lines.length; i++){
-      console.log(lines[i].character + ' ' + lines[i].line + '\n');
+      console.log(lines[i].character + ' ' + lines[i].line + lines[i].episodeNum + '\n');
+      data = data + ('1, ' + lines[i].episodeNum + ', ' + lines[i].character + ', '+ lines[i].line + '\n');
     }
+
+    fs.writeFile("test.csv", data, function(err) {
+        if(err) {
+            return console.log(err);
+        }
+        console.log("The file was saved!");
+    });
 }
