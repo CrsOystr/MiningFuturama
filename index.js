@@ -25,9 +25,14 @@ function Line(season, episodeNum, character, line){
     this.line = line;
 }
 
-//Start Here
-request(baseURL + directoryURL, function (error, response, html) {
+//Start here and request HTML for transcript directory
+request({
+    uri: baseURL + directoryURL,
+    method: "GET",
+    timeout: 10000
+    }, function (error, response, html) {
   if (!error && response.statusCode == 200) {
+    //load html using cheerio for jQuery functionality
     var $ = cheerio.load(html);
     $('td.oLeft').each(function(i, element){
       var a = $(this);
@@ -36,11 +41,12 @@ request(baseURL + directoryURL, function (error, response, html) {
       var episodeNumber = parseInt(a.next().next().next().next().text());
       if (extURL != undefined){
         urlsToParse.push(extURL);
-        console.log(episodeName);
-        console.log(episodeNumber);
       }
     });
     doWork(0);
+    }else{
+      console.log("BAD NEWS EVERYONE:\n Something b0rked the initial request, make sure you have internet\n");
+      process.exit();
   }
 });
 
@@ -51,7 +57,11 @@ request(baseURL + directoryURL, function (error, response, html) {
 
  //this function recursively makes a request to each transcript page and waits for a return
 function doWork(i){
-    request(baseURL + urlsToParse[i], function (error, response, html) {
+request({
+    uri: baseURL + urlsToParse[i],
+    method: "GET",
+    timeout: 10000
+    }, function (error, response, html) {
       if (!error && response.statusCode == 200) {
           //load html using cheerio for jQuery functionality
         var $ = cheerio.load(html);
@@ -61,7 +71,10 @@ function doWork(i){
           var text = a.text().split('⨂').pop().split(':');
           var character = text[0].trim();
           if(text[1]!=undefined){
-              var characterLine = text[1].replace(/(\[.*?\])/g, '').replace(/(\r\n|\n|\r)/gm,'').trim();
+              var characterLine = text[1].replace(/(\[.*?\])/g, '') //replace everything in brackets
+              .replace(/(\r\n|\n|\r)/gm,'') //replace all line breaks
+              .replace(/["]+/g, '') // replace quotation marks
+              .trim();
              //characterLine = characterLine.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?]/g,"").replace(/\s+/g, " ").trim();
               console.log(character);
               console.log(characterLine);
@@ -78,7 +91,11 @@ function doWork(i){
         }else{
             cleanUp();
         }
-      }
+    }else{
+        console.log("BAD NEWS EVERYONE:\n Something b0rked a request\n");
+        process.exit();
+    }
+
     });
 }
 
