@@ -1,20 +1,31 @@
+//imports
 var request = require('request');
 var cheerio = require('cheerio');
 var fs = require("fs");
 
+/* variables
+ *
+ */
 var baseURL = 'https://theinfosphere.org';
 var directoryURL = '/Episode_Transcript_Listing';
 var urlsToParse = [];
 var responsesReceived = 0;
+var prodSeason = 0;
+var lines = [];
+//this
+var prodSeasonsBreaks = [13,32,54,72,88,114,140];
 
-function Line(character, line, episodeNum){
+/* classes
+ *
+ */
+function Line(season, episodeNum, character, line){
+    this.season = season;
+    this.episodeNum = episodeNum;
     this.character = character;
     this.line = line;
-    this.episodeNum = episodeNum;
 }
- var lines = [];
 
-
+//Start Here
 request(baseURL + directoryURL, function (error, response, html) {
   if (!error && response.statusCode == 200) {
     var $ = cheerio.load(html);
@@ -33,46 +44,78 @@ request(baseURL + directoryURL, function (error, response, html) {
   }
 });
 
+
+/* functions
+ *
+ */
+
+ //this function recursively makes a request to each transcript page and waits for a return
 function doWork(i){
     request(baseURL + urlsToParse[i], function (error, response, html) {
       if (!error && response.statusCode == 200) {
+          //load html using cheerio for jQuery functionality
         var $ = cheerio.load(html);
+        //look for each div with class poem
         $('div.poem').each(function(j, element){
           var a = $(this);
           var text = a.text().split('⨂').pop().split(':');
           var character = text[0].trim();
-          var characterLine;
           if(text[1]!=undefined){
-              characterLine = text[1].replace(/(\[.*?\])/g, '').trim();
+              var characterLine = text[1].replace(/(\[.*?\])/g, '').replace(/(\r\n|\n|\r)/gm,'').trim();
              //characterLine = characterLine.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?]/g,"").replace(/\s+/g, " ").trim();
               console.log(character);
               console.log(characterLine);
               console.log(responsesReceived + 1);
-              lines.push(new Line(character, characterLine, responsesReceived + 1));
+              if(responsesReceived >= prodSeasonsBreaks[prodSeason]){
+                  prodSeason++;
+              }
+              lines.push(new Line(prodSeason+1, responsesReceived+1, character, characterLine));
           }
         });
         responsesReceived++;
-        if (responsesReceived == urlsToParse.length-1){
-            cleanUp();
-        }else{
+        if (responsesReceived != urlsToParse.length){
             doWork(responsesReceived);
+        }else{
+            cleanUp();
         }
       }
     });
 }
 
+//this function is called once every URL hs been requested and all HTML has been parsed
 function cleanUp(){
-    var data = "Season, Episode, Character, Line\n"
+    //setup first line of CSV
+    var data = 'Season, Episode, Character, Line\n';
+    var lineCount = 0;
 
-    for (var i=0; i < lines.length; i++){
-      console.log(lines[i].character + ' ' + lines[i].line + lines[i].episodeNum + '\n');
-      data = data + ('1, ' + lines[i].episodeNum + ', ' + lines[i].character + ', '+ lines[i].line + '\n');
+    for (var i = 1; i < prodSeasonsBreaks.length + 1; i++){
+        var seasonData = 'Season, Episode, Character, Line\n';
+
+        for (var j = lineCount; j < lines.length; j++){
+            if (lines[j].season == i){
+                seasonData = seasonData + (lines[j].season + ', ' + lines[j].episodeNum + ', ' + lines[j].character + ', '+ lines[j].line + '\n');
+            }else{
+                lineCount = j++;
+                break;
+            }
+            data = data + (lines[j].season + ', ' + lines[j].episodeNum + ', ' + lines[j].character + ', '+ lines[j].line + '\n');
+            console.log(lines[j].character + ' ' + lines[j].line + lines[j].episodeNum + '\n');
+        }
+
+        //write season CSV to disk
+        fs.writeFile('Season-' + i + '.csv', seasonData, function(err) {
+            if(err) {
+                return console.log(err);
+            }
+            console.log('The file was saved!');
+        });
     }
 
-    fs.writeFile("test.csv", data, function(err) {
+    //write complete CSV to disk
+    fs.writeFile('AllSeasons.csv', data, function(err) {
         if(err) {
             return console.log(err);
         }
-        console.log("The file was saved!");
+        console.log('The file was saved!');
     });
 }
