@@ -73,7 +73,7 @@ request({
           if(text[1]!=undefined){
               var characterLine = text[1].replace(/(\[.*?\])/g, '') //replace everything in brackets
               .replace(/(\r\n|\n|\r)/gm,'') //replace all line breaks
-              .replace(/["]+/g, '') // replace quotation marks
+              .replace(/["]+/g, '""') // replace quotation marks
               .trim();
              //characterLine = characterLine.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?]/g,"").replace(/\s+/g, " ").trim();
               console.log(character);
@@ -110,12 +110,12 @@ function cleanUp(){
 
         for (var j = lineCount; j < lines.length; j++){
             if (lines[j].season == i){
-                seasonData = seasonData + (lines[j].season + ', ' + lines[j].episodeNum + ', ' + lines[j].character + ', '+ lines[j].line + '\n');
+                seasonData = seasonData + (lines[j].season + ', ' + lines[j].episodeNum + ', ' + lines[j].character + ', "'+ lines[j].line + '"\n');
             }else{
                 lineCount = j++;
                 break;
             }
-            data = data + (lines[j].season + ', ' + lines[j].episodeNum + ', ' + lines[j].character + ', '+ lines[j].line + '\n');
+            data = data + (lines[j].season + ', ' + lines[j].episodeNum + ', ' + lines[j].character + ', "'+ lines[j].line + '"\n');
             console.log(lines[j].character + ' ' + lines[j].line + lines[j].episodeNum + '\n');
         }
 
