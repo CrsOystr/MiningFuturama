@@ -110,12 +110,12 @@ function cleanUp(){
 
         for (var j = lineCount; j < lines.length; j++){
             if (lines[j].season == i){
-                seasonData = seasonData + (lines[j].season + ', ' + lines[j].episodeNum + ', ' + lines[j].character + ', "'+ lines[j].line + '"\n');
+                seasonData = seasonData + (lines[j].season + ', ' + lines[j].episodeNum + ', "' + lines[j].character + '", "'+ lines[j].line + '"\n');
             }else{
                 lineCount = j++;
                 break;
             }
-            data = data + (lines[j].season + ', ' + lines[j].episodeNum + ', ' + lines[j].character + ', "'+ lines[j].line + '"\n');
+            data = data + (lines[j].season + ', ' + lines[j].episodeNum + ', "' + lines[j].character + '", "'+ lines[j].line + '"\n');
             console.log(lines[j].character + ' ' + lines[j].line + lines[j].episodeNum + '\n');
         }
 
